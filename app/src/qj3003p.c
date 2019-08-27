@@ -62,7 +62,7 @@ int qj3003p_get_idn(int qj3003p_fd, char *str, int max_str_length)
 	int ret = 0;
 	int r;
 
-	const char *cmd = "*IDN?\n";
+	const char *cmd = "*IDN?\\r\\n";
 	r = qj3003p_write(qj3003p_fd, cmd, strlen(cmd));
 	if (r < 0)
 	{
@@ -115,21 +115,42 @@ static int tty_config(int fd, speed_t speed)
 		return -1;
 	}
 
-	serial_port_settings.c_lflag &= ~ICANON; // Cannonical mode
-	serial_port_settings.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
+	// serial_port_settings.c_lflag &= ~ICANON; // Cannonical mode
+	// serial_port_settings.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
 
-	serial_port_settings.c_cflag &= ~PARENB;        // Disables the Parity Enable bit(PARENB)
-	serial_port_settings.c_cflag &= ~CSTOPB;        // CSTOPB = 2 Stop bits, here it's cleared so 1 Stop bit
-	serial_port_settings.c_cflag &= ~CSIZE;         // Clears the mask for setting the data size
-	serial_port_settings.c_cflag |=  CS8;           // Set the data bits = 8
-	serial_port_settings.c_cflag &= ~CRTSCTS;       // No Hardware flow Control
-	serial_port_settings.c_cflag |= CREAD | CLOCAL; // Enable receiver, Ignore Modem Control lines
+	// serial_port_settings.c_cflag &= ~PARENB;        // Disables the Parity Enable bit(PARENB)
+	// serial_port_settings.c_cflag &= ~CSTOPB;        // CSTOPB = 2 Stop bits, here it's cleared so 1 Stop bit
+	// serial_port_settings.c_cflag &= ~CSIZE;         // Clears the mask for setting the data size
+	// serial_port_settings.c_cflag |=  CS8;           // Set the data bits = 8
+	// serial_port_settings.c_cflag &= ~CRTSCTS;       // No Hardware flow Control
+	// serial_port_settings.c_cflag |= CREAD | CLOCAL; // Enable receiver, Ignore Modem Control lines
 
-	serial_port_settings.c_iflag &= ~(IXON | IXOFF | IXANY);         // Disable XON/XOFF flow control both i/p and o/p
-	serial_port_settings.c_oflag &= ~OPOST; // No Output Processing
+	// serial_port_settings.c_iflag &= ~(IXON | IXOFF | IXANY);         // Disable XON/XOFF flow control both i/p and o/p
+	// serial_port_settings.c_oflag &= ~OPOST; // No Output Processing
 
-	serial_port_settings.c_cc[VMIN] = 0; // Read at least 255 characters
-	serial_port_settings.c_cc[VTIME] = 10; // Wait indefinetly
+	// serial_port_settings.c_cc[VMIN] = 0; // Read at least 255 characters
+	// serial_port_settings.c_cc[VTIME] = 10; // Wait indefinetly
+
+
+	serial_port_settings.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN);
+	serial_port_settings.c_lflag &= ~(ECHOCTL | ECHOKE);
+
+	serial_port_settings.c_oflag &= ~(OPOST | ONLCR | OCRNL);
+
+	serial_port_settings.c_iflag &= ~(INLCR | IGNCR | ICRNL | IGNBRK);
+	serial_port_settings.c_iflag &= ~(IUCLC | PARMRK);
+	serial_port_settings.c_iflag &= ~(INPCK | ISTRIP);
+	serial_port_settings.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+	serial_port_settings.c_cflag |= (CREAD | CLOCAL);
+	serial_port_settings.c_cflag |= (CS8);
+	serial_port_settings.c_cflag &= ~(CSTOPB);
+	serial_port_settings.c_cflag &= ~(PARENB | PARODD | CMSPAR);
+	serial_port_settings.c_cflag &= ~(CRTSCTS);
+	// serial_port_settings.c_cflag &= ~(CNEW_RTSCTS);
+
+	serial_port_settings.c_cc[VMIN] = 1; // Read at least 255 characters
+	serial_port_settings.c_cc[VTIME] = 0; // Wait indefinetly
 
 	r = tcsetattr(fd, TCSANOW, &serial_port_settings);
 	if (r == -1)
@@ -178,18 +199,38 @@ static int qj3003p_read(int qj3003p_fd, char *str, int max_str_length)
 {
 	int ret = 0;
 	int n;
+	int i;
 
-	n = read(qj3003p_fd, str, max_str_length);
-	if (n == -1)
+	i = 0;
+	while (i < max_str_length)
 	{
-		printf("4\n");
-		fprintf(stderr, "# E: unable to read from QJ3003P (%s)\n", strerror(errno));
-		ret = -1;
-		goto qj3003p_read_exit;
+		n = read(qj3003p_fd, &str[i], 1);
+		if (n == -1)
+		{
+			fprintf(stderr, "# E: unable to read from QJ3003P (%s)\n", strerror(errno));
+			ret = -1;
+			goto qj3003p_read_exit;
+		}
+		else if (n != 1)
+		{
+			fprintf(stderr, "# E: unable to read a symbol from QJ3003P (%d)\n", n);
+			ret = -2;
+			goto qj3003p_read_exit;
+		}
+
+		i++;
+
+		if (str[i-1] == '\n')
+		{
+			break;
+		}
 	}
 
-	ret = n;
-
 	qj3003p_read_exit:
+	if ((i > 0) && (ret == 0))
+	{
+		ret = i;
+	}
+
 	return ret;
 }
