@@ -15,6 +15,9 @@ int main(int argc, char const *argv[])
 	char serial[16] = {0};
 	uint16_t model_id = 0;
 	uint16_t fw_version = 0;
+	double mvalue = 0.0;
+	double svalue = 0.0;
+	disp_status_t status;
 
 	appa208_open(APPA208_TTY, &appa208_fd);
 
@@ -24,6 +27,11 @@ int main(int argc, char const *argv[])
 	printf("serial = \"%.16s\"\n", serial);
 	printf("model_id = 0x%x\n", model_id);
 	printf("fw_version = 0x%x\n", fw_version);
+
+	appa208_read_disp(appa208_fd, &mvalue, &svalue, &status);
+
+	printf("mvalue = %le\n", mvalue);
+	printf("svalue = %le\n", svalue);
 
 	appa208_close(appa208_fd);
 
