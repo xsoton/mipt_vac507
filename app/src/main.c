@@ -1,59 +1,31 @@
 #include <stdio.h>
 
-#include "qj3003p.h"
+#include "appa208.h"
 
 #define QJ3003P_TTY "/dev/ttyUSB2"
+#define APPA208_TTY "/dev/ttyUSB0"
 
 int main(int argc, char const *argv[])
 {
 	(void)argc;
 	(void)argv;
 
-	int qj3003p_fd;
+	int appa208_fd;
+	char model[32] = {0};
+	char serial[16] = {0};
+	uint16_t model_id = 0;
+	uint16_t fw_version = 0;
 
-	qj3003p_open(QJ3003P_TTY, &qj3003p_fd);
+	appa208_open(APPA208_TTY, &appa208_fd);
 
-	#define MAX_STR_LENGTH 1024
-	char str[MAX_STR_LENGTH] = {0};
+	appa208_read_info(appa208_fd, model, serial, &model_id, &fw_version);
 
-	double current;
-	double voltage;
+	printf("model = \"%.32s\"\n", model);
+	printf("serial = \"%.16s\"\n", serial);
+	printf("model_id = 0x%x\n", model_id);
+	printf("fw_version = 0x%x\n", fw_version);
 
-	int output;
-
-	qj3003p_get_idn(qj3003p_fd, str, MAX_STR_LENGTH);
-	printf("idn = \"%s\"\n", str);
-
-	qj3003p_get_status(qj3003p_fd, &output);
-	printf("output = %d\n", output);
-
-	qj3003p_set_output(qj3003p_fd, 0);
-
-	current = 1.234;
-	qj3003p_set_current(qj3003p_fd, current);
-	printf("iset = %lf\n", current);
-
-	voltage = 5.678;
-	qj3003p_set_voltage(qj3003p_fd, voltage);
-	printf("vset = %lf\n", voltage);
-
-	qj3003p_set_output(qj3003p_fd, 1);
-
-	qj3003p_get_status(qj3003p_fd, &output);
-	printf("output = %d\n", output);
-
-	qj3003p_get_current(qj3003p_fd, &current);
-	printf("iout = %lf\n", current);
-
-	qj3003p_get_voltage(qj3003p_fd, &voltage);
-	printf("vout = %lf\n", voltage);
-
-	qj3003p_set_output(qj3003p_fd, 0);
-
-	qj3003p_get_status(qj3003p_fd, &output);
-	printf("output = %d\n", output);
-
-	qj3003p_close(qj3003p_fd);
+	appa208_close(appa208_fd);
 
 	return 0;
 }
