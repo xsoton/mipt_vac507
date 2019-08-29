@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -62,7 +63,7 @@ int qj3003p_get_idn(int qj3003p_fd, char *str, int max_str_length)
 	int ret = 0;
 	int r;
 
-	const char *cmd = "*IDN?\\r\\n";
+	const char *cmd = "*IDN?\\n";
 	r = qj3003p_write(qj3003p_fd, cmd, strlen(cmd));
 	if (r < 0)
 	{
@@ -81,12 +82,212 @@ int qj3003p_get_idn(int qj3003p_fd, char *str, int max_str_length)
 	return ret;
 }
 
-// int qj3003p_set_voltage(int qj3003p_fd, double voltage);
-// int qj3003p_get_voltage(int qj3003p_fd, double *voltage);
-// int qj3003p_set_current(int qj3003p_fd, double current);
-// int qj3003p_get_current(int qj3003p_fd, double *current);
-// int qj3003p_set_output(int qj3003p_fd, int output);
-// int qj3003p_get_status(int qj3003p_fd, int *status);
+int qj3003p_set_voltage(int qj3003p_fd, double voltage)
+{
+	int ret = 0;
+	int r;
+	int n;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+	int buffer_length = 0;
+
+
+	if ((voltage < 0.0) || (voltage > 31.0))
+	{
+		ret = -1;
+		goto qj3003p_set_voltage_exit;
+	}
+
+	n = snprintf(buffer, buffer_size, "VSET1:%05.2f\\n", voltage);
+	if (n < 0)
+	{
+		fprintf(stderr, "# E: Unable to format command \"%s\" (%s)\n", buffer, strerror(errno));
+		ret = -2;
+		goto qj3003p_set_voltage_exit;
+	}
+
+	buffer_length = n;
+
+	r = qj3003p_write(qj3003p_fd, buffer, buffer_length);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_set_voltage_exit;
+	}
+
+	usleep(100000);
+
+	qj3003p_set_voltage_exit:
+	return ret;
+}
+
+int qj3003p_get_voltage(int qj3003p_fd, double *voltage)
+{
+	int ret = 0;
+	int r;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+
+	const char *cmd = "VOUT1?\\n";
+	r = qj3003p_write(qj3003p_fd, cmd, strlen(cmd));
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_voltage_exit;
+	}
+
+	r = qj3003p_read(qj3003p_fd, buffer, buffer_size);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_voltage_exit;
+	}
+
+	*voltage = atof(buffer);
+
+	qj3003p_get_voltage_exit:
+	return ret;
+}
+
+int qj3003p_set_current(int qj3003p_fd, double current)
+{
+	int ret = 0;
+	int r;
+	int n;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+	int buffer_length = 0;
+
+
+	if ((current < 0.0) || (current > 3.2))
+	{
+		ret = -1;
+		goto qj3003p_set_current_exit;
+	}
+
+	n = snprintf(buffer, buffer_size, "ISET1:%.3f\\n", current);
+	if (n < 0)
+	{
+		fprintf(stderr, "# E: Unable to format command \"%s\" (%s)\n", buffer, strerror(errno));
+		ret = -2;
+		goto qj3003p_set_current_exit;
+	}
+
+	buffer_length = n;
+
+	r = qj3003p_write(qj3003p_fd, buffer, buffer_length);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_set_current_exit;
+	}
+
+	usleep(100000);
+
+	qj3003p_set_current_exit:
+	return ret;
+}
+
+int qj3003p_get_current(int qj3003p_fd, double *current)
+{
+	int ret = 0;
+	int r;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+
+	const char *cmd = "IOUT1?\\n";
+	r = qj3003p_write(qj3003p_fd, cmd, strlen(cmd));
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_current_exit;
+	}
+
+	r = qj3003p_read(qj3003p_fd, buffer, buffer_size);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_current_exit;
+	}
+
+	*current = atof(buffer);
+
+	qj3003p_get_current_exit:
+	return ret;
+}
+
+int qj3003p_set_output(int qj3003p_fd, int output)
+{
+	int ret = 0;
+	int r;
+	int n;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+	int buffer_length = 0;
+
+	if ((output != 0) && (output != 1))
+	{
+		ret = -1;
+		goto qj3003p_set_output_exit;
+	}
+
+	n = snprintf(buffer, buffer_size, "OUTPUT%d\\n", output);
+	if (n < 0)
+	{
+		fprintf(stderr, "# E: Unable to format command \"%s\" (%s)\n", buffer, strerror(errno));
+		ret = -2;
+		goto qj3003p_set_output_exit;
+	}
+
+	buffer_length = n;
+
+	r = qj3003p_write(qj3003p_fd, buffer, buffer_length);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_set_output_exit;
+	}
+
+	usleep(100000);
+
+	qj3003p_set_output_exit:
+	return ret;
+}
+
+int qj3003p_get_status(int qj3003p_fd, int *output)
+{
+	int ret = 0;
+	int r;
+
+	char buffer[20] = {0};
+	const int buffer_size = 20;
+
+	const char *cmd = "STATUS?\\n";
+	r = qj3003p_write(qj3003p_fd, cmd, strlen(cmd));
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_status_exit;
+	}
+
+	r = qj3003p_read(qj3003p_fd, buffer, buffer_size);
+	if (r < 0)
+	{
+		ret = r;
+		goto qj3003p_get_status_exit;
+	}
+
+	// printf("status = \"%s\"\n", buffer);
+	*output = (buffer[1] == '0') ? 0 : 1;
+
+	qj3003p_get_status_exit:
+	return ret;
+}
 
 static int tty_config(int fd, speed_t speed)
 {
@@ -114,23 +315,6 @@ static int tty_config(int fd, speed_t speed)
 		fprintf(stderr, "# E: unable to set terminal output speed (%s)\n", strerror(errno));
 		return -1;
 	}
-
-	// serial_port_settings.c_lflag &= ~ICANON; // Cannonical mode
-	// serial_port_settings.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
-
-	// serial_port_settings.c_cflag &= ~PARENB;        // Disables the Parity Enable bit(PARENB)
-	// serial_port_settings.c_cflag &= ~CSTOPB;        // CSTOPB = 2 Stop bits, here it's cleared so 1 Stop bit
-	// serial_port_settings.c_cflag &= ~CSIZE;         // Clears the mask for setting the data size
-	// serial_port_settings.c_cflag |=  CS8;           // Set the data bits = 8
-	// serial_port_settings.c_cflag &= ~CRTSCTS;       // No Hardware flow Control
-	// serial_port_settings.c_cflag |= CREAD | CLOCAL; // Enable receiver, Ignore Modem Control lines
-
-	// serial_port_settings.c_iflag &= ~(IXON | IXOFF | IXANY);         // Disable XON/XOFF flow control both i/p and o/p
-	// serial_port_settings.c_oflag &= ~OPOST; // No Output Processing
-
-	// serial_port_settings.c_cc[VMIN] = 0; // Read at least 255 characters
-	// serial_port_settings.c_cc[VTIME] = 10; // Wait indefinetly
-
 
 	serial_port_settings.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN);
 	serial_port_settings.c_lflag &= ~(ECHOCTL | ECHOKE);

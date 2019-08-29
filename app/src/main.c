@@ -9,42 +9,51 @@ int main(int argc, char const *argv[])
 	(void)argc;
 	(void)argv;
 
-	int ret = 0;
-	int r;
-
 	int qj3003p_fd;
 
-	r = qj3003p_open(QJ3003P_TTY, &qj3003p_fd);
-	if (r < 0)
-	{
-		fprintf(stderr, "# E: unable to open " QJ3003P_TTY " as QJ3003P device (%d)\n", r);
-		ret = -1;
-		goto main_exit;
-	}
+	qj3003p_open(QJ3003P_TTY, &qj3003p_fd);
 
-	{
-		#define MAX_STR_LENGTH 1024
-		char str[MAX_STR_LENGTH] = {0};
+	#define MAX_STR_LENGTH 1024
+	char str[MAX_STR_LENGTH] = {0};
 
-		r = qj3003p_get_idn(qj3003p_fd, str, MAX_STR_LENGTH);
-		if (r < 0)
-		{
-			fprintf(stderr, "# E: unable to get idn of QJ3003P device (%d)\n", r);
-			ret = -1;
-			goto main_close;
-		}
+	double current;
+	double voltage;
 
-		fprintf(stdout, "idn = \"%s\"\n", str);
-	}
+	int output;
 
-	main_close:
-	r = qj3003p_close(qj3003p_fd);
-	if (r < 0)
-	{
-		ret = -1;
-		goto main_exit;
-	}
+	qj3003p_get_idn(qj3003p_fd, str, MAX_STR_LENGTH);
+	printf("idn = \"%s\"\n", str);
 
-	main_exit:
-	return ret;
+	qj3003p_get_status(qj3003p_fd, &output);
+	printf("output = %d\n", output);
+
+	qj3003p_set_output(qj3003p_fd, 0);
+
+	current = 1.234;
+	qj3003p_set_current(qj3003p_fd, current);
+	printf("iset = %lf\n", current);
+
+	voltage = 5.678;
+	qj3003p_set_voltage(qj3003p_fd, voltage);
+	printf("vset = %lf\n", voltage);
+
+	qj3003p_set_output(qj3003p_fd, 1);
+
+	qj3003p_get_status(qj3003p_fd, &output);
+	printf("output = %d\n", output);
+
+	qj3003p_get_current(qj3003p_fd, &current);
+	printf("iout = %lf\n", current);
+
+	qj3003p_get_voltage(qj3003p_fd, &voltage);
+	printf("vout = %lf\n", voltage);
+
+	qj3003p_set_output(qj3003p_fd, 0);
+
+	qj3003p_get_status(qj3003p_fd, &output);
+	printf("output = %d\n", output);
+
+	qj3003p_close(qj3003p_fd);
+
+	return 0;
 }
