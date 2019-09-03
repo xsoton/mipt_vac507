@@ -82,7 +82,7 @@ int appa208_read_info(int appa208_fd, appa208_info_t *info)
 	r = appa208_write(appa208_fd, cmd, 5);
 	if (r < 0)
 	{
-		ret = r;
+		ret = -1;
 		goto appa208_read_info_exit;
 	}
 
@@ -90,7 +90,7 @@ int appa208_read_info(int appa208_fd, appa208_info_t *info)
 	r = appa208_read(appa208_fd, packet.buffer, sizeof(packet.buffer));
 	if (r < 0)
 	{
-		ret = r;
+		ret = -2;
 		goto appa208_read_info_exit;
 	}
 
@@ -101,6 +101,12 @@ int appa208_read_info(int appa208_fd, appa208_info_t *info)
 		checksum += packet.buffer[i];
 	}
 
+	// for (size_t i = 0; i < sizeof(packet.buffer); ++i)
+	// {
+	// 	printf("0x%02x ", packet.buffer[i]);
+	// }
+	// printf("\n");
+
 	int check_err =
 		(packet.answer.start0      != 0x55) ||
 		(packet.answer.start1      != 0x55) ||
@@ -110,7 +116,7 @@ int appa208_read_info(int appa208_fd, appa208_info_t *info)
 
 	if (check_err)
 	{
-		ret = -1;
+		ret = -3;
 		goto appa208_read_info_exit;
 	}
 
@@ -129,7 +135,7 @@ int appa208_read_disp(int appa208_fd, appa208_disp_t *disp)
 	r = appa208_write(appa208_fd, cmd, 5);
 	if (r < 0)
 	{
-		ret = r;
+		ret = -1;
 		goto appa208_read_disp_exit;
 	}
 
@@ -137,7 +143,7 @@ int appa208_read_disp(int appa208_fd, appa208_disp_t *disp)
 	r = appa208_read(appa208_fd, packet.buffer, sizeof(packet.buffer));
 	if (r < 0)
 	{
-		ret = r;
+		ret = -2;
 		goto appa208_read_disp_exit;
 	}
 
@@ -146,6 +152,12 @@ int appa208_read_disp(int appa208_fd, appa208_disp_t *disp)
 	{
 		checksum += packet.buffer[i];
 	}
+
+	// for (size_t i = 0; i < sizeof(packet.buffer); ++i)
+	// {
+	// 	printf("0x%02x ", packet.buffer[i]);
+	// }
+	// printf("\n");
 
 	int check_err =
 		(packet.answer.start0      != 0x55) ||
@@ -156,7 +168,7 @@ int appa208_read_disp(int appa208_fd, appa208_disp_t *disp)
 
 	if (check_err)
 	{
-		ret = -1;
+		ret = -3;
 		goto appa208_read_disp_exit;
 	}
 
@@ -203,6 +215,11 @@ double appa208_get_value(appa208_disp_data_t *disp_data)
 unit_t appa208_get_unit(appa208_disp_data_t *disp_data)
 {
 	return appa208_runit[disp_data->unit];
+}
+
+int appa208_get_overload(appa208_disp_data_t *disp_data)
+{
+	return (int)disp_data->overload;
 }
 
 static int tty_config(int fd, speed_t speed)

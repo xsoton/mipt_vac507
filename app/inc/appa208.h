@@ -22,7 +22,7 @@ typedef struct __attribute__((__packed__))
 
 typedef union
 {
-	uint8_t buffer[17];
+	uint8_t buffer[57];
 	appa208_rd_info_ans_t answer;
 } appa208_rd_info_ans_packet_t;
 
@@ -31,18 +31,18 @@ typedef union
 typedef struct __attribute__((__packed__))
 {
 	uint8_t reading[3];
-	uint8_t unit:5;
 	uint8_t dot:3;
-	uint8_t overload:1;
+	uint8_t unit:5;
 	uint8_t data_content:7;
+	uint8_t overload:1;
 } appa208_disp_data_t;
 
 typedef struct __attribute__((__packed__))
 {
-	uint8_t auto_test:1;
 	uint8_t fcode:7;
-	uint8_t auto_range:1;
+	uint8_t auto_test:1;
 	uint8_t rcode:7;
+	uint8_t auto_range:1;
 	appa208_disp_data_t mdata;
 	appa208_disp_data_t sdata;
 } appa208_disp_t;
@@ -77,9 +77,10 @@ int appa208_read_disp(int appa208_fd, appa208_disp_t *disp);
 
 double appa208_get_value(appa208_disp_data_t *disp_data);
 unit_t appa208_get_unit(appa208_disp_data_t *disp_data);
+int appa208_get_overload(appa208_disp_data_t *disp_data);
 
-const char *appa208_ftcodes[] = {"Manual Test", "Auto Test"};
-const char *appa208_fcodes[] = {
+static const char *appa208_ftcodes[] = {"Manual Test", "Auto Test"};
+static const char *appa208_fcodes[] = {
 	"None", "AC V", "DC V", "AC mV", "DC mV", "Ohm", "Continuity", "Diode", "Cap", "AC A",
 	"DC A", "AC mA", "DC mA", "°C", "°F", "Frequency", "Duty", "Hz (V)", "Hz (mV)", "Hz (A)",
 	"Hz (mA)", "AC+DC (V)", "AC+DC (mV)", "AC+DC (A)", "AC+DC (mA)", "LPF (V)", "LPF (mV)",
@@ -90,7 +91,7 @@ const char *appa208_fcodes[] = {
 	"Battery", "AC W", "DC W", "PF", "Flex AC A", "Flex LPF (A)", "Flex PeakHold (A)",
 	"Flex Hz (A)", "Vharm", "Inrush", "Aharm", "Flex Inrush", "Flex Aharm", "PeakHold (uA)"};
 
-const char *appa208_words[] = {
+static const char *appa208_words[] = {
 	"Space", "Full", "Beep", "APO", "b.Lit", "HAZ", "On", "Off", "Reset", "Start", "View",
 	"Pause", "Fuse", "Probe", "dEF", "Clr", "Er", "Er1", "Er2", "Er3", "Dash", "Dash1",
 	"Test", "Dash2", "bAtt", "diSLt", "noiSE", "FiLtr", "PASS", "null", "0-20", "4-20",
@@ -98,13 +99,13 @@ const char *appa208_words[] = {
 	"OL (not use)", "FULL", "HALF", "Lo", "Hi", "digit", "rdy", "dISC", "outF", "OLA",
 	"OLV", "OLVA", "bAd", "TEMP"};
 
-const char *appa208_units[] = {
+static const char *appa208_units[] = {
 	"None", "V", "mV", "A", "mA", "dB", "dBm", "mF", "uF", "nF", "GΩ", "MΩ", "kΩ", "Ω", "%%",
 	"MHz", "kHz", "Hz", "°C", "°F", "sec", "ms", "us", "ns", "uA", "min", "kW", "PF", "F", "W"};
 
-const char *appa208_ols[] = {"Not Overload", "Overload"};
+static const char *appa208_ols[] = {"Not Overload", "Overload"};
 
-const char *appa208_dcs[] = {
+static const char *appa208_dcs[] = {
 	"Measuring data", "Frequency", "Cycle", "Duty", "Memory Stamp", "Memory Save", "Memory Load",
 	"Log Save", "Log Load", "Log Rate", "REL Δ", "REL %", "REL Reference", "Maximum", "Minimum",
 	"Average", "Peak Hold Max", "Peak Hold Min", "dBm", "dB", "Auto Hold", "Setup", "Log Stamp",
