@@ -1,10 +1,10 @@
 #include <stdio.h>
 
-#include "appa208.h"
+#include "lomo.h"
 
-#define LOMO_TTY "/dev/ttyUSB0"
-#define QJ3003P_TTY "/dev/ttyUSB1"
-#define APPA208_TTY "/dev/ttyUSB2"
+#define LOMO_TTY "/dev/ttyUSB1"
+#define QJ3003P_TTY "/dev/ttyUSB2"
+#define APPA208_TTY "/dev/ttyUSB0"
 
 int main(int argc, char const *argv[])
 {
@@ -14,61 +14,46 @@ int main(int argc, char const *argv[])
 	int ret = 0;
 	int r;
 
-	int appa208_fd;
-	appa208_info_t info;
-	appa208_disp_t disp;
+	int lomo_fd;
 	double value;
-	unit_t unit;
-	int overload;
 
-	r = appa208_open(APPA208_TTY, &appa208_fd);
+	r = lomo_open(LOMO_TTY, &lomo_fd);
 	if (r < 0)
 	{
-		fprintf(stderr, "# E: unable to open APPA208 (%d)\n", r);
 		ret = -1;
+		fprintf(stderr, "# E: unable to open LOMO (%d)\n", r);
 		goto main_exit;
 	}
 
-	r = appa208_read_info(appa208_fd, &info);
+	r = lomo_read_init(lomo_fd);
 	if (r < 0)
 	{
-		fprintf(stderr, "# E: unable to read info from APPA208 (%d)\n", r);
-		ret = -2;
+		ret = -1;
+		fprintf(stderr, "# E: unable to init LOMO (%d)\n", r);
 		goto main_close;
 	}
 
-	printf("info:\n");
-	printf("model_name = %.32s\n", info.model_name);
-	printf("serial_name = %.16s\n", info.serial_name);
-	uint16_t mid = *(uint16_t *)info.model_id;
-	uint16_t fwv = *(uint16_t *)info.fw_version;
-	printf("model_id = %u\n", mid);
-	printf("fw_version = %u\n", fwv);
-
-	r = appa208_read_disp(appa208_fd, &disp);
+	r = lomo_read_value(lomo_fd, &value);
 	if (r < 0)
 	{
-		fprintf(stderr, "# E: unable to read disp from APPA208 (%d)\n", r);
-		ret = -3;
+		ret = -1;
+		fprintf(stderr, "# E: unable to read value from LOMO (%d)\n", r);
 		goto main_close;
 	}
 
-	value = appa208_get_value(&disp.mdata);
-	unit = appa208_get_unit(&disp.mdata);
-	overload = appa208_get_overload(&disp.mdata);
-
-	printf("value = %le (%s), overload = %d\n", value, appa208_units[unit], overload);
-
+	printf("value = %le V\n", value);
 
 main_close:
-	r = appa208_close(appa208_fd);
+
+	r = lomo_close(lomo_fd);
 	if (r < 0)
 	{
-		fprintf(stderr, "# E: unable to close APPA208 (%d)\n", r);
-		ret = -4;
+		ret = -1;
+		fprintf(stderr, "# E: unable to close LOMO (%d)\n", r);
 		goto main_exit;
 	}
 
 main_exit:
+
 	return ret;
 }
