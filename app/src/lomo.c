@@ -74,7 +74,7 @@ int lomo_close(int lomo_fd)
 	return ret;
 }
 
-int lomo_read_init(int lomo_fd)
+int lomo_init(int lomo_fd)
 {
 	int ret = 0;
 	int r;
