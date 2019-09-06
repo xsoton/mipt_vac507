@@ -255,7 +255,7 @@ int lomo_read_value(int lomo_fd, double *value)
 		goto lomo_read_value_exit;
 	}
 
-	*value = 4e-4 * (((double)val)/((double)num_ret))/(1L << 24);
+	*value = (((double)val)/((double)num_ret))/(1L << 24);
 
 	lomo_read_value_exit:
 	return ret;
@@ -265,7 +265,7 @@ static uint8_t lomo_get_packet_crc(const uint8_t *buffer, size_t buffer_length)
 {
 	uint8_t crc = 0;
 
-	for (int i = 0; i < buffer_length; ++i)
+	for (size_t i = 0; i < buffer_length; ++i)
 	{
 		uint8_t byte = buffer[i];
 
@@ -357,7 +357,7 @@ static int lomo_write(int lomo_fd, const uint8_t *cmd, int cmd_length)
 	int ret = 0;
 	int n;
 
-/*
+//*
 printf("write = ");
 for (size_t j = 0; j < cmd_length; ++j)
 {
@@ -435,7 +435,7 @@ static int lomo_read(int lomo_fd, uint8_t *buffer, int buffer_size)
 		ret = i;
 	}
 
-/*
+//*
 printf("read = ");
 for (size_t j = 0; j < i; ++j)
 {
