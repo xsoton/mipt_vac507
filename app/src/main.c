@@ -113,8 +113,8 @@ void *commander(void *arg)
 }
 
 #define LOMO
-// #define APPA
-#define QJ
+#define APPA
+// #define QJ
 
 void *worker(void *arg)
 {
@@ -152,13 +152,17 @@ void *worker(void *arg)
 
 #define ERR(c, g, s, ...) do{if(c){fprintf(stderr,s,__VA_ARGS__);set_run(p, 0);goto g;}}while(0);
 
+// printf("01\n");
+
 #ifdef LOMO
 	r = lomo_open(LOMO_TTY, &lomo_fd);
 		ERR(r < 0, worker_exit, "# E: Unable to open lomo (%d)", r);
+// printf("011\n");
 	r = lomo_init(lomo_fd);
 		ERR(r < 0, worker_close_lomo, "# E: Unable to init lomo (%d)", r);
 #endif
 
+// printf("02\n");
 #ifdef APPA
 	r = appa208_open(APPA208_TTY, &appa_fd);
 		ERR(r < 0, worker_close_lomo, "# E: Unable to open appa (%d)", r);
@@ -167,6 +171,7 @@ void *worker(void *arg)
 	mult_unit = appa208_get_unit(&disp.mdata);
 #endif
 
+// printf("03\n");
 
 #ifdef QJ
 	r = qj3003p_open(QJ3003P_TTY, &qj_fd);
@@ -204,19 +209,19 @@ void *worker(void *arg)
 	while(get_run(p))
 	{
 #define ERRL(c, g, s, ...) do{if(c){fprintf(stderr,s,__VA_ARGS__);set_run(p, 0);plot_signal(p);goto g;}}while(0);
-		if (index * step_U > 10)
-		{
-			set_run(p, 0);
-			plot_signal(p);
-			continue;
-		}
+		// if (index * step_U > 10)
+		// {
+		// 	set_run(p, 0);
+		// 	plot_signal(p);
+		// 	continue;
+		// }
 
 #ifdef QJ
 		r = qj3003p_set_voltage(qj_fd, index * step_U);
 			ERRL(r < 0, worker_close_file, "# E: Unable to set qj voltage (%d)\n", r);
 #endif
 
-		sleep(1);
+		// sleep(1);
 
 #ifdef QJ
 		r = qj3003p_get_voltage(qj_fd, &pps_U);
@@ -228,10 +233,14 @@ void *worker(void *arg)
 			ERRL(r < 0, worker_close_file, "# E: Unable to get qj current (%d)\n", r);
 #endif
 
+// printf("1\n");
+
 #ifdef LOMO
 		r = lomo_read_value(lomo_fd, &adc);
-			ERRL(r < 0, worker_close_file, "# E: Unable to read lomo adc (%d)\n", r);
+			ERRL(r < 0, worker_close_file, "# E: Unable to read lyomo adc (%d)\n", r);
 #endif
+
+// printf("2\n");
 
 #ifdef APPA
 		r = appa208_read_disp(appa_fd, &disp);
@@ -240,6 +249,8 @@ void *worker(void *arg)
 		mult_unit = appa208_get_unit(&disp.mdata);
 		mult_overload = appa208_get_overload(&disp.mdata);
 #endif
+
+// printf("3\n");
 
 		fprintf(fp,
 			"%d"
@@ -269,10 +280,12 @@ void *worker(void *arg)
 #endif
 		);
 
-		index++;
+		// index++;
 
 		plot_signal(p);
 	}
+
+	plot_signal(p);
 
 worker_close_file:
 
@@ -340,7 +353,7 @@ void *plotter(void *arg)
 	{
 		plot_wait(p);
 
-		fprintf(gp, "plot \"%s\" u 2:4 w l\n", p->filename);
+		fprintf(gp, "plot \"%s\" u 3:2 w l\n", p->filename);
 	}
 
 	pclose(gp);
