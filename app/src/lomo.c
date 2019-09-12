@@ -357,7 +357,7 @@ static int lomo_write(int lomo_fd, const uint8_t *cmd, int cmd_length)
 	int ret = 0;
 	int n;
 
-//*
+/*
 printf("write = ");
 for (size_t j = 0; j < cmd_length; ++j)
 {
@@ -435,7 +435,7 @@ static int lomo_read(int lomo_fd, uint8_t *buffer, int buffer_size)
 		ret = i;
 	}
 
-//*
+/*
 printf("read = ");
 for (size_t j = 0; j < i; ++j)
 {
