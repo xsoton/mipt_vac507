@@ -11,12 +11,19 @@
 
 #define QJ
 #define LOMO
-#define APPA
+// #define APPA
 
 #define LOMO_TTY "/dev/ttyUSB2"
 #define QJ3003P_TTY "/dev/ttyUSB0"
 #define APPA208_TTY "/dev/ttyUSB1"
 
+#define U_STEP 0.1
+#define TIME_DELAY_S 10
+
+#define DBG(s)
+#define DBGP(s, ...)
+// #define DBG(s) do{fprintf(stderr,s);}while(0);
+// #define DBGP(s, ...) do{fprintf(stderr,s,__VA_ARGS__);}while(0);
 #define ERR(c, g, s, ...) do{if(c){fprintf(stderr,s,__VA_ARGS__);set_run(p, 0);goto g;}}while(0);
 #define ERR_PL(c, g, s, ...) do{if(c){fprintf(stderr,s,__VA_ARGS__);set_run(p, 0);data_ready_signal(p);goto g;}}while(0);
 
@@ -76,6 +83,7 @@ int main(int argc, char const *argv[])
 	pthread_cond_init(&params.data_ready_cond, NULL);
 	pthread_mutex_init(&params.data_written_mutex, NULL);
 	pthread_cond_init(&params.data_written_cond, NULL);
+	params.run = 1;
 
 	pthread_t t_commander;
 	pthread_t t_worker;
@@ -96,7 +104,7 @@ int main(int argc, char const *argv[])
 
 	pthread_create(&t_commander, NULL, commander, &params);
 	pthread_create(&t_worker, NULL, worker, &params);
-	pthread_create(&t_writer, NULL, worker, &params);
+	pthread_create(&t_writer, NULL, writer, &params);
 	pthread_create(&t_plotter, NULL, plotter, &params);
 
 	pthread_join(t_worker, NULL);
@@ -166,36 +174,56 @@ void *worker(void *arg)
 	int qj_fd;
 #endif
 
-	double step_U = 0.1;
+	double step_U = U_STEP;
 
 #ifdef APPA
 	appa208_disp_t disp;
 #endif
 
 #ifdef LOMO
+DBG("# D: lomo open\n");
 	r = lomo_open(LOMO_TTY, &lomo_fd);
-		ERR(r < 0, worker_exit, "# E: Unable to open lomo (%d)", r);
+		ERR(r < 0, worker_exit, "# E: Unable to open lomo (%d)\n", r);
+DBG("# D: lomo init\n");
 	r = lomo_init(lomo_fd);
-		ERR(r < 0, worker_close_lomo, "# E: Unable to init lomo (%d)", r);
+		ERR(r < 0, worker_close_lomo, "# E: Unable to init lomo (%d)\n", r);
 #endif
 
 #ifdef APPA
+DBG("# D: appa open\n");
 	r = appa208_open(APPA208_TTY, &appa_fd);
-		ERR(r < 0, worker_close_lomo, "# E: Unable to open appa (%d)", r);
-	r = appa208_read_disp(appa_fd, &disp);
-		ERR(r < 0, worker_close_appa, "# E: Unable to read appa display (%d)", r);
+		ERR(r < 0, worker_close_lomo, "# E: Unable to open appa (%d)\n", r);
+DBG("# D: appa read\n");
+	// dirty hack
+	int i = 0;
+	do
+	{
+		r = appa208_read_disp(appa_fd, &disp);
+		if (r == 0)
+		{
+			break;
+		}
+		fprintf(stderr, "# W: appa problem (%d)\n", r);
+		i++;
+	} while (i < 3);
+		ERR(r < 0, worker_close_appa, "# E: Unable to read appa display (%d)\n", r);
 	p->mult_unit = appa208_get_unit(&disp.mdata);
 #endif
 
 #ifdef QJ
+DBG("# D: qj open\n");
 	r = qj3003p_open(QJ3003P_TTY, &qj_fd);
 		ERR(r < 0, worker_close_appa, "# E: Unable to open qj (%d)\n", r);
+DBG("# D: qj set output\n");
 	r = qj3003p_set_output(qj_fd, 0);
 		ERR(r < 0, worker_exit_qj, "# E: Unable to set qj output (%d)\n", r);
+DBG("# D: qj set voltage\n");
 	r = qj3003p_set_voltage(qj_fd, 0.0);
 		ERR(r < 0, worker_exit_qj, "# E: Unable to set qj voltage (%d)\n", r);
+DBG("# D: qj set current\n");
 	r = qj3003p_set_current(qj_fd, 3.0);
 		ERR(r < 0, worker_exit_qj, "# E: Unable to set qj current (%d)\n", r);
+DBG("# D: qj set output\n");
 	r = qj3003p_set_output(qj_fd, 1);
 		ERR(r < 0, worker_exit_qj, "# E: Unable to set qj output (%d)\n", r);
 #endif
@@ -206,19 +234,18 @@ void *worker(void *arg)
 	{
 		if ((p->index + 1) * step_U > 10)
 		{
+DBG("# D: exit\n");
 			set_run(p, 0);
 			goto worker_end_loop;
 		}
 
-		data_written_wait(p);
-
-		p->index++;
+DBGP("next_read %d\n", p->index);
 
 #ifdef QJ
 		r = qj3003p_set_voltage(qj_fd, p->index * step_U);
 			ERR(r < 0, worker_end_loop, "# E: Unable to set qj voltage (%d)\n", r);
 
-		sleep(1);
+		sleep(TIME_DELAY_S);
 
 		r = qj3003p_get_voltage(qj_fd, &p->pps_U);
 			ERR(r < 0, worker_end_loop, "# E: Unable to get qj voltage (%d)\n", r);
@@ -232,7 +259,18 @@ void *worker(void *arg)
 #endif
 
 #ifdef APPA
-		r = appa208_read_disp(appa_fd, &disp);
+		// dirty hack
+		int i = 0;
+		do
+		{
+			r = appa208_read_disp(appa_fd, &disp);
+			if (r == 0)
+			{
+				break;
+			}
+			fprintf(stderr, "# W: appa problem (%d)\n", r);
+			i++;
+		} while (i < 3);
 			ERR(r < 0, worker_end_loop, "# E: Unable to read appa display (%d)\n", r);
 		p->mult_value = appa208_get_value(&disp.mdata);
 		p->mult_unit = appa208_get_unit(&disp.mdata);
@@ -242,6 +280,10 @@ void *worker(void *arg)
 worker_end_loop:
 
 		data_ready_signal(p);
+
+		data_written_wait(p);
+
+		p->index++;
 	}
 
 worker_exit_qj:
@@ -317,6 +359,8 @@ void *writer(void *arg)
 	{
 		data_ready_wait(p);
 
+DBGP("next_write %d\n", p->index);
+
 		r = fprintf(fp,
 			"%d"
 #ifdef QJ
@@ -390,7 +434,7 @@ void *plotter(void *arg)
 	{
 		data_written_wait(p);
 
-		fprintf(gp, "plot \"%s\" u 3:2 w l\n", p->filename);
+		fprintf(gp, "plot \"%s\" u 2:4 w l\n", p->filename);
 	}
 
 	pclose(gp);
