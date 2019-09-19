@@ -9,7 +9,7 @@
 #include "appa208.h"
 #include "qj3003p.h"
 
-#define QJ
+// #define QJ
 #define LOMO
 // #define APPA
 
