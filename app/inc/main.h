@@ -9,7 +9,7 @@
 #include "appa208.h"
 #include "qj3003p.h"
 
-// #define QJ
+#define QJ
 #define LOMO
 // #define APPA
 
@@ -18,7 +18,7 @@
 #define APPA208_TTY "/dev/ttyUSB1"
 
 #define U_STEP 0.1
-#define TIME_DELAY_S 10
+#define TIME_DELAY_S 5
 
 #define DBG(s)
 #define DBGP(s, ...)

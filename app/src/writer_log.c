@@ -101,7 +101,7 @@ void *writer_log(void *arg)
 
 		if (!ready)
 		{
-			sleep(1);
+			usleep(200000);
 			goto writer_log_end_loop;
 		}
 
