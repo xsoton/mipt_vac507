@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #include "lomo.h"
 #include "appa208.h"
@@ -65,6 +66,8 @@ typedef struct
 	char filename_appa[100];
 #endif
 } params_t;
+
+double get_time();
 
 void *commander(void *arg);
 
