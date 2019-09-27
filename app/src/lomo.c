@@ -185,7 +185,8 @@ int lomo_read_value(int lomo_fd, double *value)
 	int n;
 
 	// uint8_t cmd[] = {PACKET_START, 0x04, HUB_ADDR, CMD_HUB_RESET_SYSTEM, 0x00};
-	uint32_t num = 19200;
+	// uint32_t num = 19200;
+	uint32_t num = 40000;
 	uint8_t cmd[] = {PACKET_START, 0x00, 0x10, CMD_ADS1252_N_MEASURE, 0x00, 0x00, 0x00, 0x00, 0x00};
 	cmd[1] = sizeof(cmd)-1;
 	cmd[4] = num & 0xff;
@@ -255,7 +256,7 @@ int lomo_read_value(int lomo_fd, double *value)
 		goto lomo_read_value_exit;
 	}
 
-	*value = 4e-4 * (((double)val)/((double)num_ret))/(1L << 24);
+	*value = (((double)val)/((double)num_ret))/(1L << 24);
 
 	lomo_read_value_exit:
 	return ret;
@@ -265,7 +266,7 @@ static uint8_t lomo_get_packet_crc(const uint8_t *buffer, size_t buffer_length)
 {
 	uint8_t crc = 0;
 
-	for (int i = 0; i < buffer_length; ++i)
+	for (size_t i = 0; i < buffer_length; ++i)
 	{
 		uint8_t byte = buffer[i];
 

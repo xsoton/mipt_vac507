@@ -79,34 +79,9 @@ double appa208_get_value(appa208_disp_data_t *disp_data);
 unit_t appa208_get_unit(appa208_disp_data_t *disp_data);
 int appa208_get_overload(appa208_disp_data_t *disp_data);
 
-static const char *appa208_ftcodes[] = {"Manual Test", "Auto Test"};
-static const char *appa208_fcodes[] = {
-	"None", "AC V", "DC V", "AC mV", "DC mV", "Ohm", "Continuity", "Diode", "Cap", "AC A",
-	"DC A", "AC mA", "DC mA", "°C", "°F", "Frequency", "Duty", "Hz (V)", "Hz (mV)", "Hz (A)",
-	"Hz (mA)", "AC+DC (V)", "AC+DC (mV)", "AC+DC (A)", "AC+DC (mA)", "LPF (V)", "LPF (mV)",
-	"LPF (A)", "LPF (mA)", "AC uA", "DC uA", "DC A out", "DC A out (Slow Linear)",
-	"DC A out (Fast Linear)", "DC A out (Slow Step)", "DC A out (Fast Step)", "LoopPower",
-	"250ohmHart", "VoltSense", "PeakHold (V)", "PeakHold (mV)", "PeakHold (A)", "PeakHold (mA)",
-	"LoZ AC V", "LoZ DC V", "LoZ AC+DC (V)", "LoZ LPF (V)", "LoZ Hz (V)", "LoZ PeakHold (V)",
-	"Battery", "AC W", "DC W", "PF", "Flex AC A", "Flex LPF (A)", "Flex PeakHold (A)",
-	"Flex Hz (A)", "Vharm", "Inrush", "Aharm", "Flex Inrush", "Flex Aharm", "PeakHold (uA)"};
-
-static const char *appa208_words[] = {
-	"Space", "Full", "Beep", "APO", "b.Lit", "HAZ", "On", "Off", "Reset", "Start", "View",
-	"Pause", "Fuse", "Probe", "dEF", "Clr", "Er", "Er1", "Er2", "Er3", "Dash", "Dash1",
-	"Test", "Dash2", "bAtt", "diSLt", "noiSE", "FiLtr", "PASS", "null", "0-20", "4-20",
-	"RATE", "SAVE", "LOAd", "YES", "SEnd", "Ahold", "Auto", "Cntin", "CAL", "Version",
-	"OL (not use)", "FULL", "HALF", "Lo", "Hi", "digit", "rdy", "dISC", "outF", "OLA",
-	"OLV", "OLVA", "bAd", "TEMP"};
-
-static const char *appa208_units[] = {
-	"None", "V", "mV", "A", "mA", "dB", "dBm", "mF", "uF", "nF", "GΩ", "MΩ", "kΩ", "Ω", "%%",
-	"MHz", "kHz", "Hz", "°C", "°F", "sec", "ms", "us", "ns", "uA", "min", "kW", "PF", "F", "W"};
-
-static const char *appa208_ols[] = {"Not Overload", "Overload"};
-
-static const char *appa208_dcs[] = {
-	"Measuring data", "Frequency", "Cycle", "Duty", "Memory Stamp", "Memory Save", "Memory Load",
-	"Log Save", "Log Load", "Log Rate", "REL Δ", "REL %", "REL Reference", "Maximum", "Minimum",
-	"Average", "Peak Hold Max", "Peak Hold Min", "dBm", "dB", "Auto Hold", "Setup", "Log Stamp",
-	"Log Max", "Log Min", "Log TP", "Hold", "Current Output", "CurOut 0-20mA %%", "CurOut 4-20mA %%"};
+const char *appa208_str_ftcode(uint8_t ftcode);
+const char *appa208_str_fcode(uint8_t fcode);
+const char *appa208_str_word(uint16_t wcode);
+const char *appa208_str_unit(unit_t unit);
+const char *appa208_str_overload(uint8_t overload);
+const char *appa208_str_data_content(uint8_t data_content);
