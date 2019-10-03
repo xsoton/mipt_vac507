@@ -3,7 +3,7 @@
 #ifdef LOMO
 void *plotter_lomo(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 
 	FILE *gp = NULL;
 

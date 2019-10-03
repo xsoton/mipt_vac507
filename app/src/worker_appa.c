@@ -3,7 +3,7 @@
 #ifdef APPA
 void *worker_appa(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 	int r;
 
 	int appa_fd;

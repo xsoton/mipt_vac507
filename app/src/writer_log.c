@@ -1,8 +1,8 @@
 #include "main.h"
 
-void *writer_log(void *arg)
+void *writer(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 	int r;
 
 	FILE *fp;
@@ -29,34 +29,34 @@ void *writer_log(void *arg)
 	#endif
 
 	fp = fopen(p->filename_log, "w+");
-		ERR(fp == NULL, writer_log_exit, "# E: Unable to open file \"%s\" (%s)\n", p->filename_log, strerror(ferror(fp)));
+		ERR(fp == NULL, writer_exit, "# E: Unable to open file \"%s\" (%s)\n", p->filename_log, strerror(ferror(fp)));
 
 	setlinebuf(fp);
 
 	int col = 1;
 	r = fprintf(fp, "# %d: index\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 #ifdef QJ
 	r = fprintf(fp, "# %d: qj index\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 	r = fprintf(fp, "# %d: pps U, V\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 	r = fprintf(fp, "# %d: pps I, A\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 #endif
 #ifdef LOMO
 	r = fprintf(fp, "# %d: lomo index\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 	r = fprintf(fp, "# %d: lomo adc, a.u. [0-1]\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 #endif
 #ifdef APPA
 	r = fprintf(fp, "# %d: appa index\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 	r = fprintf(fp, "# %d: appa value, V\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 	r = fprintf(fp, "# %d: appa overload, bool\n", col++);
-		ERR(r < 0, writer_log_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
+		ERR(r < 0, writer_close, "# E: Unable to print to file \"%s\" (%s)\n", p->filename_log, strerror(r));
 #endif
 
 	while(get_run(p))
@@ -102,7 +102,7 @@ void *writer_log(void *arg)
 		if (!ready)
 		{
 			usleep(200000);
-			goto writer_log_end_loop;
+			goto writer_end_loop;
 		}
 
 		r = fprintf(fp,
@@ -147,16 +147,16 @@ void *writer_log(void *arg)
 
 		index++;
 
-		writer_log_end_loop:
+		writer_end_loop:
 
 		data_log_written_signal(p);
 	}
 
-writer_log_close:
+writer_close:
 
 	fclose(fp);
 
-writer_log_exit:
+writer_exit:
 
 	return NULL;
 }

@@ -3,7 +3,7 @@
 #ifdef QJ
 void *plotter_qj(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 
 	FILE *gp = NULL;
 

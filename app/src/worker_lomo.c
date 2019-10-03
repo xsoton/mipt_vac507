@@ -3,7 +3,7 @@
 #ifdef LOMO
 void *worker_lomo(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 	int r;
 
 	int lomo_fd;

@@ -1,6 +1,6 @@
 #include "main.h"
 
-int get_run(params_t *p)
+int get_run(exp_t *p)
 {
 	int run;
 	pthread_rwlock_rdlock(&p->run_lock);
@@ -9,7 +9,7 @@ int get_run(params_t *p)
 	return run;
 }
 
-void set_run(params_t *p, int run)
+void set_run(exp_t *p, int run)
 {
 	pthread_rwlock_wrlock(&p->run_lock);
 		p->run = run;

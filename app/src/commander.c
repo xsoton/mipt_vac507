@@ -2,7 +2,7 @@
 
 void *commander(void *arg)
 {
-	params_t *p = (params_t *)arg;
+	exp_t *p = (exp_t *)arg;
 	char str[100];
 	char *s;
 
