@@ -116,7 +116,7 @@ int qj3003p_set_voltage(int qj3003p_fd, double voltage)
 		goto qj3003p_set_voltage_exit;
 	}
 
-	usleep(100000);
+	// usleep(100000);
 
 	qj3003p_set_voltage_exit:
 	return ret;
@@ -185,7 +185,7 @@ int qj3003p_set_current(int qj3003p_fd, double current)
 		goto qj3003p_set_current_exit;
 	}
 
-	usleep(100000);
+	// usleep(100000);
 
 	qj3003p_set_current_exit:
 	return ret;
@@ -253,7 +253,7 @@ int qj3003p_set_output(int qj3003p_fd, int output)
 		goto qj3003p_set_output_exit;
 	}
 
-	usleep(100000);
+	// usleep(100000);
 
 	qj3003p_set_output_exit:
 	return ret;
