@@ -7,3 +7,4 @@ int qj3003p_set_current(int qj3003p_fd, double current);
 int qj3003p_get_current(int qj3003p_fd, double *current);
 int qj3003p_set_output(int qj3003p_fd, int output);
 int qj3003p_get_status(int qj3003p_fd, int *output);
+void qj3003p_delay();

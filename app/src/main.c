@@ -21,8 +21,8 @@
 #define LOMO_TTY "/dev/ttyUSB2"
 #define QJ3003P_TTY "/dev/ttyUSB0"
 #define VOLTAGE_STEP 0.1
-#define ADC_PASS 3
-#define ADC_AVERAGE 3
+#define ADC_PASS 1
+#define ADC_AVERAGE 2
 
 // === threads
 
@@ -36,6 +36,8 @@ void set_run(int run_new);
 double get_time();
 
 // === global variables
+
+char dir_str[100];
 
 pthread_rwlock_t run_lock;
 int run;
@@ -54,7 +56,6 @@ int main(int argc, char const *argv[])
 	pthread_t t_worker;
 
 	int status;
-	char dir_str[100];
 
 	// === check input parameters
 
@@ -82,7 +83,7 @@ int main(int argc, char const *argv[])
 
 	// === create dirictory in "20191012_153504_<experiment_name>" format
 
-	snprintf(dir_str, 100, "%d%d%d_%d%d%d_%s",
+	snprintf(dir_str, 100, "%04d%02d%02d_%02d%02d%02d_%s",
 		start_time_struct.tm_year + 1900,
 		start_time_struct.tm_mon,
 		start_time_struct.tm_mday,
@@ -103,6 +104,9 @@ int main(int argc, char const *argv[])
 
 	snprintf(filename_vac, 100, "%s/vac.dat", dir_str);
 	snprintf(filename_adc, 100, "%s/adc.dat", dir_str);
+
+	// printf("filename_vac \"%s\"\n", filename_vac);
+	// printf("filename_adc = \"%s\"\n", filename_adc);
 
 	// === now start threads
 
@@ -191,6 +195,8 @@ void *worker(void *arg)
 
 	FILE  *gp;
 
+	char   buf[100];
+
 	// === first we connect to instruments
 
 	r = qj3003p_open(QJ3003P_TTY, &pps_fd);
@@ -217,12 +223,16 @@ void *worker(void *arg)
 		goto worker_adc_close;
 	}
 
+	qj3003p_delay();
+
 	r = qj3003p_set_voltage(pps_fd, 0.0);
 	if(r < 0)
 	{
 		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
 		goto worker_adc_close;
 	}
+
+	qj3003p_delay();
 
 	r = qj3003p_set_current(pps_fd, 0.5);
 	if(r < 0)
@@ -231,12 +241,16 @@ void *worker(void *arg)
 		goto worker_adc_close;
 	}
 
+	qj3003p_delay();
+
 	r = qj3003p_set_output(pps_fd, 1);
 	if(r < 0)
 	{
 		fprintf(stderr, "# E: Unable to set pps output (%d)\n", r);
 		goto worker_adc_close;
 	}
+
+	qj3003p_delay();
 
 	// === init adc
 
@@ -297,7 +311,8 @@ void *worker(void *arg)
 
 	// === open gnuplot
 
-	gp = popen("gnuplot", "w");
+	snprintf(buf, 100, "gnuplot > %s/gnuplot.log 2>&1", dir_str);
+	gp = popen(buf, "w");
 	if (gp == NULL)
 	{
 		fprintf(stderr, "# E: unable to open gnuplot pipe (%s)\n", strerror(errno));
@@ -309,13 +324,11 @@ void *worker(void *arg)
 	// === prepare gnuplot
 
 	r = fprintf(gp,
-		"set title \"\"\n"
-		"set xlabel \"PPS voltage, V\"\n"
-		"set ylabel \"ADC average signal, a.u. [0-1]\"\n"
 		"set xrange [0:]\n"
 		"set yrange [0:]\n"
-		"set multiplot"
-		"set size 1.0, 0.5\n"
+		"set size 1,1\n"
+		"set origin 0,0\n"
+		"set ylabel \"ADC average signal, a.u. [0-1]\"\n"
 	);
 	if(r < 0)
 	{
@@ -380,6 +393,38 @@ void *worker(void *arg)
 				goto worker_while_continue;
 			}
 
+			if (pps_index == 0)
+			{
+				r = fprintf(gp,
+					"set title \"t = %lf s\"\n"
+					"set xlabel \"ADC index\"\n"
+					"plot \"%s\" u 1:3 w l lw 1 notitle\n"
+					"unset title\n",
+					adc_time,
+					filename_adc
+				);
+			}
+			else
+			{
+				r = fprintf(gp,
+					"set multiplot title \"t = %lf s\" layout 2,1\n"
+					"set xlabel \"ADC index\"\n"
+					"plot \"%s\" u 1:3 w l lw 1 notitle\n"
+					"set xlabel \"PPS voltage, V\"\n"
+					"plot \"%s\" u 3:5 w l lw 1 notitle\n"
+					"unset multiplot\n",
+					adc_time,
+					filename_adc,
+					filename_vac
+				);
+			}
+			if(r < 0)
+			{
+				fprintf(stderr, "# E: Unable to print to gp (%s)\n", strerror(r));
+				set_run(0);
+				goto worker_while_continue;
+			}
+
 			if (i >= ADC_PASS)
 			{
 				adc_average += adc_value;
@@ -415,12 +460,15 @@ void *worker(void *arg)
 		}
 
 		r = fprintf(gp,
-			"set origin 0.0, 0.0\n"
-			"plot '%s' u 3,5 w l lw 2\n"
-			"set origin 0.0, 0.5\n"
-			"plot '%s' u 1:3 w l lw 2\n",
-			filename_vac,
-			filename_adc
+			"set multiplot title \"t = %lf s\" layout 2,1\n"
+			"set xlabel \"ADC index\"\n"
+			"plot \"%s\" u 1:3 w l lw 1 notitle\n"
+			"set xlabel \"PPS voltage, V\"\n"
+			"plot \"%s\" u 3:5 w l lw 1 notitle\n"
+			"unset multiplot\n",
+			adc_time,
+			filename_adc,
+			filename_vac
 		);
 		if(r < 0)
 		{
@@ -434,6 +482,14 @@ void *worker(void *arg)
 		worker_while_continue:
 		continue;
 	}
+
+	r = qj3003p_set_voltage(pps_fd, 0.0);
+	if(r < 0)
+	{
+		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
+	}
+
+	qj3003p_delay();
 
 	worker_gp_close:
 
@@ -467,11 +523,15 @@ void *worker(void *arg)
 		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
 	}
 
+	qj3003p_delay();
+
 	r = qj3003p_set_output(pps_fd, 0);
 	if(r < 0)
 	{
 		fprintf(stderr, "# E: Unable to set pps output (%d)\n", r);
 	}
+
+	qj3003p_delay();
 
 	worker_adc_close:
 

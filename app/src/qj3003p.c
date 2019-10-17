@@ -418,3 +418,8 @@ static int qj3003p_read(int qj3003p_fd, char *str, int max_str_length)
 
 	return ret;
 }
+
+void qj3003p_delay()
+{
+	usleep(100000);
+}

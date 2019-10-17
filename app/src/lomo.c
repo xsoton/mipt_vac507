@@ -187,6 +187,7 @@ int lomo_read_value(int lomo_fd, double *value)
 	// uint8_t cmd[] = {PACKET_START, 0x04, HUB_ADDR, CMD_HUB_RESET_SYSTEM, 0x00};
 	// uint32_t num = 19200;
 	uint32_t num = 40000;
+	// uint32_t num = 5000;
 	uint8_t cmd[] = {PACKET_START, 0x00, 0x10, CMD_ADS1252_N_MEASURE, 0x00, 0x00, 0x00, 0x00, 0x00};
 	cmd[1] = sizeof(cmd)-1;
 	cmd[4] = num & 0xff;
