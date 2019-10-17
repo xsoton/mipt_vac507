@@ -85,7 +85,7 @@ int main(int argc, char const *argv[])
 
 	snprintf(dir_str, 100, "%04d%02d%02d_%02d%02d%02d_%s",
 		start_time_struct.tm_year + 1900,
-		start_time_struct.tm_mon,
+		start_time_struct.tm_mon + 1,
 		start_time_struct.tm_mday,
 		start_time_struct.tm_hour,
 		start_time_struct.tm_min,
