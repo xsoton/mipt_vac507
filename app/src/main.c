@@ -12,17 +12,15 @@
 
 // === hardware includes
 
-#include "lomo.h"
+#include "appa208.h"
 #include "qj3003p.h"
 
 // === config
 // TODO: make a config file
 
-#define LOMO_TTY "/dev/ttyUSB2"
+#define APPA208_TTY "/dev/ttyUSB1"
 #define QJ3003P_TTY "/dev/ttyUSB0"
-#define VOLTAGE_STEP 0.1
-#define ADC_PASS 1
-#define ADC_AVERAGE 2
+#define VOLTAGE_STEP 0.5
 
 // === threads
 
@@ -42,7 +40,6 @@ char dir_str[100];
 pthread_rwlock_t run_lock;
 int run;
 char filename_vac[100];
-char filename_adc[100];
 time_t start_time;
 struct tm start_time_struct;
 
@@ -103,10 +100,8 @@ int main(int argc, char const *argv[])
 	// === create file names
 
 	snprintf(filename_vac, 100, "%s/vac.dat", dir_str);
-	snprintf(filename_adc, 100, "%s/adc.dat", dir_str);
 
 	// printf("filename_vac \"%s\"\n", filename_vac);
-	// printf("filename_adc = \"%s\"\n", filename_adc);
 
 	// === now start threads
 
@@ -178,20 +173,16 @@ void *worker(void *arg)
 
 	int r;
 
-	int    pps_fd;
-	int    pps_index;
-	double pps_time;
-	double pps_voltage;
-	double pps_current;
+	int    ps_fd;
+	int    ps_index;
+	double ps_time;
+	double ps_voltage;
+	double ps_current;
 
-	int    adc_fd;
-	int    adc_index;
-	double adc_time;
-	double adc_value;
-	double adc_average;
+	int         vm_fd;
+	double      vm_value;
 
 	FILE  *vac_fp;
-	FILE  *adc_fp;
 
 	FILE  *gp;
 
@@ -199,67 +190,58 @@ void *worker(void *arg)
 
 	// === first we connect to instruments
 
-	r = qj3003p_open(QJ3003P_TTY, &pps_fd);
+	r = qj3003p_open(QJ3003P_TTY, &ps_fd);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to open pps (%d)\n", r);
+		fprintf(stderr, "# E: Unable to open ps (%d)\n", r);
 		goto worker_exit;
 	}
 
-	r = lomo_open(LOMO_TTY, &adc_fd);
+	r = appa208_open(APPA208_TTY, &vm_fd);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to open adc (%d)\n", r);
+		fprintf(stderr, "# E: Unable to open voltmeter (%d)\n", r);
 		set_run(0);
-		goto worker_pps_close;
+		goto worker_ps_close;
 	}
 
-	// === init pps
+	// === init ps
 
-	r = qj3003p_set_output(pps_fd, 0);
+	r = qj3003p_set_output(ps_fd, 0);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps output (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps output (%d)\n", r);
 		goto worker_adc_close;
 	}
 
 	qj3003p_delay();
 
-	r = qj3003p_set_voltage(pps_fd, 0.0);
+	r = qj3003p_set_voltage(ps_fd, 0.0);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps voltage (%d)\n", r);
 		goto worker_adc_close;
 	}
 
 	qj3003p_delay();
 
-	r = qj3003p_set_current(pps_fd, 0.5);
+	r = qj3003p_set_current(ps_fd, 0.5);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps current (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps current (%d)\n", r);
 		goto worker_adc_close;
 	}
 
 	qj3003p_delay();
 
-	r = qj3003p_set_output(pps_fd, 1);
+	r = qj3003p_set_output(ps_fd, 1);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps output (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps output (%d)\n", r);
 		goto worker_adc_close;
 	}
 
 	qj3003p_delay();
-
-	// === init adc
-
-	r = lomo_init(adc_fd);
-	if(r < 0)
-	{
-		fprintf(stderr, "# E: Unable to init adc (%d)\n", r);
-		goto worker_pps_deinit;
-	}
 
 	// === create vac file
 
@@ -267,45 +249,22 @@ void *worker(void *arg)
 	if(vac_fp == NULL)
 	{
 		fprintf(stderr, "# E: Unable to open file \"%s\" (%s)\n", filename_vac, strerror(ferror(vac_fp)));
-		goto worker_pps_deinit;
+		goto worker_ps_deinit;
 	}
 
 	setlinebuf(vac_fp);
-
-	// === create adc file
-
-	adc_fp = fopen(filename_adc, "w+");
-	if(adc_fp == NULL)
-	{
-		fprintf(stderr, "# E: Unable to open file \"%s\" (%s)\n", filename_adc, strerror(ferror(adc_fp)));
-		goto worker_vac_fp_close;
-	}
-
-	setlinebuf(adc_fp);
 
 	// === write vac header
 
 	r = fprintf(vac_fp,
 		"# 1: index\n"
 		"# 2: time, s\n"
-		"# 3: pps voltage, V\n"
-		"# 4: pps current, A\n"
-		"# 5: adc average value, a.u. [0-1]\n");
+		"# 3: ps voltage, V\n"
+		"# 4: ps current, A\n"
+		"# 5: vm value, V\n");
 	if(r < 0)
 	{
 		fprintf(stderr, "# E: Unable to print to file \"%s\" (%s)\n", filename_vac, strerror(r));
-		goto worker_adc_fp_close;
-	}
-
-	// === write adc header
-
-	r = fprintf(adc_fp,
-		"# 1: index\n"
-		"# 2: time, s\n"
-		"# 3: adc value, a.u. [0-1]\n");
-	if(r < 0)
-	{
-		fprintf(stderr, "# E: Unable to print to file \"%s\" (%s)\n", filename_adc, strerror(r));
 		goto worker_adc_fp_close;
 	}
 
@@ -326,9 +285,8 @@ void *worker(void *arg)
 	r = fprintf(gp,
 		"set xrange [0:]\n"
 		"set yrange [0:]\n"
-		"set size 1,1\n"
-		"set origin 0,0\n"
-		"set ylabel \"ADC average signal, a.u. [0-1]\"\n"
+		"set xlabel \"PS voltage, V\"\n"
+		"set ylabel \"VM signal, V\"\n"
 	);
 	if(r < 0)
 	{
@@ -338,26 +296,27 @@ void *worker(void *arg)
 
 	// === let the action begins!
 
-	adc_index = 0;
-	pps_index = 0;
+	ps_index = 0;
 
 	while(get_run())
 	{
-		pps_time = get_time();
-		if (pps_time < 0)
+		appa208_disp_t disp;
+
+		ps_time = get_time();
+		if (ps_time < 0)
 		{
 			fprintf(stderr, "# E: Unable to get time\n");
 			set_run(0);
 			continue;
 		}
 
-		if ((pps_index + 1) * VOLTAGE_STEP > 10)
+		if ((ps_index + 1) * VOLTAGE_STEP > 10)
 		{
 			set_run(0);
 			continue;
 		}
 
-		r = qj3003p_set_voltage(pps_fd, pps_index * VOLTAGE_STEP);
+		r = qj3003p_set_voltage(ps_fd, ps_index * VOLTAGE_STEP);
 		if(r < 0)
 		{
 			fprintf(stderr, "# E: Unable to set qj voltage (%d)\n", r);
@@ -365,93 +324,37 @@ void *worker(void *arg)
 			continue;
 		}
 
-		adc_average = 0;
+		qj3003p_delay();
 
-		for (int i = 0; i < ADC_PASS + ADC_AVERAGE; i++)
-		{
-			adc_time = get_time();
-			if (adc_time < 0)
-			{
-				fprintf(stderr, "# E: Unable to get time\n");
-				set_run(0);
-				goto worker_while_continue;
-			}
+		sleep(1);
 
-			r = lomo_read_value(adc_fd, &adc_value);
-			if(r < 0)
-			{
-				fprintf(stderr, "# E: Unable to read adc (%d)\n", r);
-				set_run(0);
-				goto worker_while_continue;
-			}
-
-			r = fprintf(adc_fp, "%d\t%le\t%le\n", adc_index, adc_time, adc_value);
-			if(r < 0)
-			{
-				fprintf(stderr, "# E: Unable to print to file \"%s\" (%s)\n", filename_adc, strerror(r));
-				set_run(0);
-				goto worker_while_continue;
-			}
-
-			if (pps_index == 0)
-			{
-				r = fprintf(gp,
-					"set title \"t = %lf s\"\n"
-					"set xlabel \"ADC index\"\n"
-					"plot \"%s\" u 1:3 w l lw 1 notitle\n"
-					"unset title\n",
-					adc_time,
-					filename_adc
-				);
-			}
-			else
-			{
-				r = fprintf(gp,
-					"set multiplot title \"t = %lf s\" layout 2,1\n"
-					"set xlabel \"ADC index\"\n"
-					"plot \"%s\" u 1:3 w l lw 1 notitle\n"
-					"set xlabel \"PPS voltage, V\"\n"
-					"plot \"%s\" u 3:5 w l lw 1 notitle\n"
-					"unset multiplot\n",
-					adc_time,
-					filename_adc,
-					filename_vac
-				);
-			}
-			if(r < 0)
-			{
-				fprintf(stderr, "# E: Unable to print to gp (%s)\n", strerror(r));
-				set_run(0);
-				goto worker_while_continue;
-			}
-
-			if (i >= ADC_PASS)
-			{
-				adc_average += adc_value;
-			}
-
-			adc_index++;
-		}
-
-		adc_average /= ADC_AVERAGE;
-
-		r = qj3003p_get_voltage(pps_fd, &pps_voltage);
+		r = appa208_read_disp(vm_fd, &disp);
 		if(r < 0)
 		{
-			fprintf(stderr,"# E: Unable to get pps voltage (%d)\n", r);
+			fprintf(stderr, "# E: Unable to read appa (%d)\n", r);
 			set_run(0);
 			continue;
 		}
 
-		r = qj3003p_get_current(pps_fd, &pps_current);
+		vm_value = appa208_get_value(&disp.mdata);
+
+		r = qj3003p_get_voltage(ps_fd, &ps_voltage);
 		if(r < 0)
 		{
-			fprintf(stderr,"# E: Unable to get pps current (%d)\n", r);
+			fprintf(stderr,"# E: Unable to get ps voltage (%d)\n", r);
 			set_run(0);
 			continue;
 		}
 
-		r = fprintf(vac_fp, "%d\t%le\t%le\t%le\t%le\n", pps_index, pps_time, pps_voltage, pps_current, adc_average);
+		r = qj3003p_get_current(ps_fd, &ps_current);
+		if(r < 0)
+		{
+			fprintf(stderr,"# E: Unable to get ps current (%d)\n", r);
+			set_run(0);
+			continue;
+		}
+
+		r = fprintf(vac_fp, "%d\t%le\t%le\t%le\t%le\n", ps_index, ps_time, ps_voltage, ps_current, vm_value);
 		if(r < 0)
 		{
 			fprintf(stderr, "# E: Unable to print to file \"%s\" (%s)\n", filename_vac, strerror(r));
@@ -460,14 +363,7 @@ void *worker(void *arg)
 		}
 
 		r = fprintf(gp,
-			"set multiplot title \"t = %lf s\" layout 2,1\n"
-			"set xlabel \"ADC index\"\n"
-			"plot \"%s\" u 1:3 w l lw 1 notitle\n"
-			"set xlabel \"PPS voltage, V\"\n"
-			"plot \"%s\" u 3:5 w l lw 1 notitle\n"
-			"unset multiplot\n",
-			adc_time,
-			filename_adc,
+			"plot \"%s\" u 3:5 w l lw 1 notitle\n",
 			filename_vac
 		);
 		if(r < 0)
@@ -477,16 +373,16 @@ void *worker(void *arg)
 			continue;
 		}
 
-		pps_index++;
+		ps_index++;
 
 		worker_while_continue:
 		continue;
 	}
 
-	r = qj3003p_set_voltage(pps_fd, 0.0);
+	r = qj3003p_set_voltage(ps_fd, 0.0);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps voltage (%d)\n", r);
 	}
 
 	qj3003p_delay();
@@ -501,12 +397,6 @@ void *worker(void *arg)
 
 	worker_adc_fp_close:
 
-	r = fclose(adc_fp);
-	if (r == EOF)
-	{
-		fprintf(stderr, "# E: Unable to close file \"%s\" (%s)\n", filename_adc, strerror(errno));
-	}
-
 	worker_vac_fp_close:
 
 	r = fclose(vac_fp);
@@ -515,35 +405,35 @@ void *worker(void *arg)
 		fprintf(stderr, "# E: Unable to close file \"%s\" (%s)\n", filename_vac, strerror(errno));
 	}
 
-	worker_pps_deinit:
+	worker_ps_deinit:
 
-	r = qj3003p_set_voltage(pps_fd, 0);
+	r = qj3003p_set_voltage(ps_fd, 0);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps voltage (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps voltage (%d)\n", r);
 	}
 
 	qj3003p_delay();
 
-	r = qj3003p_set_output(pps_fd, 0);
+	r = qj3003p_set_output(ps_fd, 0);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to set pps output (%d)\n", r);
+		fprintf(stderr, "# E: Unable to set ps output (%d)\n", r);
 	}
 
 	qj3003p_delay();
 
 	worker_adc_close:
 
-	r = lomo_close(adc_fd);
+	r = appa208_close(vm_fd);
 	if(r < 0)
 	{
-		fprintf(stderr, "# E: Unable to close lomo (%d)\n", r);
+		fprintf(stderr, "# E: Unable to close appa (%d)\n", r);
 	}
 
-	worker_pps_close:
+	worker_ps_close:
 
-	r = qj3003p_close(pps_fd);
+	r = qj3003p_close(ps_fd);
 	if(r < 0)
 	{
 		fprintf(stderr, "# E: Unable to close adc (%d)\n", r);
